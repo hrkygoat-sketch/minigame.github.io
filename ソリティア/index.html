@@ -1,0 +1,395 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>ソリティア 山札めくり枚数選択付き</title>
+<style>
+  body {
+    background-color: green;
+    margin: 0;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    user-select: none;
+  }
+  #start-screen {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.75);
+    color: white;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    z-index: 9999;
+  }
+  #start-screen button {
+    font-size: 1.2rem;
+    margin: 10px;
+    padding: 10px 30px;
+    border-radius: 8px;
+    border: none;
+    cursor: pointer;
+  }
+  #top-area {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    padding: 10px 20px;
+  }
+  .left-group, .right-group {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+  }
+  .pile, .stock, .waste, .foundation {
+    border: 1px solid white;
+    border-radius: 10px;
+    width: 80px;
+    height: 120px;
+    margin: 5px;
+    background-color: darkgreen;
+    position: relative;
+  }
+  .tableau {
+    display: flex;
+    justify-content: center;
+    padding: 20px;
+  }
+  .card {
+    position: absolute;
+    width: 80px;
+    height: 120px;
+    border-radius: 12px;
+    background: white;
+    box-shadow:
+      0 1px 3px rgba(0,0,0,0.3),
+      inset 0 0 4px #aaa;
+    border: 1.5px solid #333;
+    cursor: grab;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    padding: 6px 6px 6px 6px;
+    box-sizing: border-box;
+  }
+  .face-down {
+    background: linear-gradient(135deg, #0b2a4a 0%, #003366 100%);
+    border: 1.5px solid #004080;
+    box-shadow:
+      inset 0 0 10px #004080,
+      0 1px 3px rgba(0,0,0,0.5);
+  }
+  .face-down::before {
+    content: "";
+    display: block;
+    width: 60px;
+    height: 100px;
+    margin: 10px auto;
+    background:
+      repeating-radial-gradient(circle at center, #0050a0 0 2px, #003366 2px 4px);
+    border-radius: 8px;
+  }
+  .red {
+    color: #c00;
+  }
+  .black {
+    color: #111;
+  }
+  .corner-top-left {
+    font-weight: bold;
+    font-size: 18px;
+    line-height: 18px;
+    user-select: none;
+  }
+  .corner-bottom-right {
+    font-weight: bold;
+    font-size: 18px;
+    line-height: 18px;
+    transform: rotate(180deg);
+    user-select: none;
+    align-self: flex-end;
+  }
+  .center-suit {
+    font-size: 48px;
+    line-height: 1;
+    user-select: none;
+    text-align: center;
+    margin-top: auto;
+    margin-bottom: auto;
+    color: inherit;
+  }
+</style>
+</head>
+<body>
+<div id="start-screen">
+  <h2>山札を何枚めくりますか？</h2>
+  <button id="one-card">1枚めくり</button>
+  <button id="three-card">3枚めくり</button>
+</div>
+
+<h1 style="text-align:center;color:white;">ソリティア</h1>
+<div id="top-area" style="display:none;">
+  <div class="left-group">
+    <div class="stock" id="stock" title="山札"></div>
+    <div class="waste" id="waste" title="めくったカード（ウェイスト）"></div>
+  </div>
+  <div class="right-group">
+    <div id="foundations" style="display:flex;gap:5px;" title="ファウンデーション（A→K）"></div>
+  </div>
+</div>
+<div class="tableau" id="tableau" style="display:none;"></div>
+
+<script>
+const suits = ["♠", "♥", "♦", "♣"];
+const values = ["A","2","3","4","5","6","7","8","9","10","J","Q","K"];
+let deck = [];
+let tableauPiles = [[],[],[],[],[],[],[]];
+let foundations = {"♠":[], "♥":[], "♦":[], "♣":[]};
+let stock = [];
+let waste = [];
+let drawCount = 3; // 初期値（選択後に上書き）
+
+function createDeck(){
+  deck = [];
+  for(let s of suits){
+    for(let v of values){
+      deck.push({suit: s, value: v, color: (s==="♥"||s==="♦")?"red":"black", faceUp:false});
+    }
+  }
+}
+
+function shuffle(array){
+  for(let i=array.length-1; i>0; i--){
+    const j = Math.floor(Math.random()*(i+1));
+    [array[i], array[j]] = [array[j], array[i]];
+  }
+}
+
+function deal(){
+  tableauPiles = [[],[],[],[],[],[],[]];
+  foundations = {"♠":[], "♥":[], "♦":[], "♣":[]};
+  waste = [];
+  for(let i=0; i<7; i++){
+    for(let j=0; j<=i; j++){
+      let card = deck.pop();
+      card.faceUp = (j===i);
+      tableauPiles[i].push(card);
+    }
+  }
+  stock = [...deck];
+  deck = [];
+  render();
+}
+
+function render(){
+  document.getElementById("top-area").style.display = "flex";
+  document.getElementById("tableau").style.display = "flex";
+
+  const tableauDiv = document.getElementById("tableau");
+  tableauDiv.innerHTML = "";
+  tableauPiles.forEach((pile,i)=>{
+    let pileDiv = document.createElement("div");
+    pileDiv.className = "pile";
+    pile.forEach((card,idx)=>{
+      let cardDiv = createCardDiv(card);
+      cardDiv.style.top = `${idx*20}px`;
+      cardDiv.draggable = card.faceUp;
+      cardDiv.dataset.pile = i;
+      cardDiv.dataset.index = idx;
+      if(card.faceUp){
+        cardDiv.addEventListener("dragstart", e=>dragStart(e,i,idx));
+        cardDiv.addEventListener("dblclick", e=>{ if(idx === pile.length-1) tryAutoMoveToFoundation(card,"tableau",i); });
+      }
+      pileDiv.appendChild(cardDiv);
+    });
+    pileDiv.ondragover = e=>e.preventDefault();
+    pileDiv.ondrop = e=>dropOnTableau(e,i);
+    tableauDiv.appendChild(pileDiv);
+  });
+
+  const stockDiv = document.getElementById("stock");
+  stockDiv.innerHTML = "";
+  if(stock.length>0){
+    let backCard = document.createElement("div");
+    backCard.className = "card face-down";
+    stockDiv.appendChild(backCard);
+    stockDiv.onclick = drawFromStock;
+  } else {
+    stockDiv.onclick = recycleWaste;
+  }
+
+  const wasteDiv = document.getElementById("waste");
+  wasteDiv.innerHTML = "";
+  if(waste.length>0){
+    let top = waste[waste.length-1];
+    let cardDiv = createCardDiv(top);
+    cardDiv.draggable = true;
+    cardDiv.addEventListener("dragstart", e=>dragStartWaste(e));
+    cardDiv.addEventListener("dblclick", e=>tryAutoMoveToFoundation(top,"waste"));
+    wasteDiv.appendChild(cardDiv);
+  }
+
+  const foundationsDiv = document.getElementById("foundations");
+  foundationsDiv.innerHTML = "";
+  suits.forEach(suit=>{
+    let foundationDiv = document.createElement("div");
+    foundationDiv.className = "foundation";
+    foundationDiv.dataset.suit = suit;
+    if(foundations[suit].length>0){
+      let topCard = foundations[suit][foundations[suit].length-1];
+      let cardDiv = createCardDiv(topCard);
+      foundationDiv.appendChild(cardDiv);
+    }
+    foundationDiv.ondragover = e=>e.preventDefault();
+    foundationDiv.ondrop = e=>dropOnFoundation(e,suit);
+    foundationsDiv.appendChild(foundationDiv);
+  });
+}
+
+function createCardDiv(card){
+  let div = document.createElement("div");
+  div.className = `card ${card.faceUp ? card.color : "face-down"}`;
+  if(card.faceUp){
+    let cornerTopLeft = document.createElement("div");
+    cornerTopLeft.className = "corner-top-left";
+    cornerTopLeft.textContent = card.value + card.suit;
+    div.appendChild(cornerTopLeft);
+
+    let centerSuit = document.createElement("div");
+    centerSuit.className = "center-suit";
+    if(["A","J","Q","K"].includes(card.value)){
+      centerSuit.textContent = card.suit;
+    } else {
+      centerSuit.textContent = card.value;
+    }
+    div.appendChild(centerSuit);
+
+    let cornerBottomRight = document.createElement("div");
+    cornerBottomRight.className = "corner-bottom-right";
+    cornerBottomRight.textContent = card.value + card.suit;
+    div.appendChild(cornerBottomRight);
+  }
+  return div;
+}
+
+function drawFromStock(){
+  for(let i=0; i<drawCount && stock.length>0; i++){
+    let card = stock.pop();
+    card.faceUp = true;
+    waste.push(card);
+  }
+  render();
+}
+
+function recycleWaste(){
+  stock = waste.reverse().map(c=>{ c.faceUp = false; return c; });
+  waste = [];
+  render();
+}
+
+function dragStart(e,pileIndex,cardIndex){
+  e.dataTransfer.setData("text/plain", JSON.stringify({pileIndex, cardIndex, from:"tableau"}));
+}
+function dragStartWaste(e){
+  e.dataTransfer.setData("text/plain", JSON.stringify({from:"waste"}));
+}
+function dropOnFoundation(e,suit){
+  e.preventDefault();
+  try{
+    const data = JSON.parse(e.dataTransfer.getData("text/plain"));
+    if(!data) return;
+    if(data.from === "tableau"){
+      if(data.cardIndex !== tableauPiles[data.pileIndex].length - 1) return;
+      const card = tableauPiles[data.pileIndex][data.cardIndex];
+      if(canPlaceOnFoundation(card,suit)){
+        foundations[suit].push(card);
+        tableauPiles[data.pileIndex].splice(data.cardIndex,1);
+        if(tableauPiles[data.pileIndex].length>0) tableauPiles[data.pileIndex][tableauPiles[data.pileIndex].length - 1].faceUp = true;
+      }
+    } else if(data.from === "waste"){
+      if(waste.length === 0) return;
+      const card = waste[waste.length - 1];
+      if(canPlaceOnFoundation(card,suit)){
+        foundations[suit].push(card);
+        waste.pop();
+      }
+    }
+    render();
+    checkWin();
+  }catch(err){
+    console.error(err);
+  }
+}
+function dropOnTableau(e,pileIndex){
+  e.preventDefault();
+  const data = JSON.parse(e.dataTransfer.getData("text/plain"));
+  if(data.from === "tableau"){
+    const moving = tableauPiles[data.pileIndex].slice(data.cardIndex);
+    const card = moving[0];
+    if(canPlaceOnTableau(card, tableauPiles[pileIndex])){
+      tableauPiles[pileIndex] = tableauPiles[pileIndex].concat(tableauPiles[data.pileIndex].splice(data.cardIndex));
+      if(tableauPiles[data.pileIndex].length>0) tableauPiles[data.pileIndex][tableauPiles[data.pileIndex].length - 1].faceUp = true;
+    }
+  } else if(data.from === "waste"){
+    if(waste.length === 0) return;
+    const card = waste[waste.length - 1];
+    if(canPlaceOnTableau(card, tableauPiles[pileIndex])){
+      tableauPiles[pileIndex].push(waste.pop());
+    }
+  }
+  render();
+}
+function canPlaceOnFoundation(card, suit){
+  if(!card) return false;
+  if(card.suit !== suit) return false;
+  const foundation = foundations[suit];
+  if(foundation.length === 0) return card.value === "A";
+  return values.indexOf(card.value) === values.indexOf(foundation[foundation.length-1].value) + 1;
+}
+function canPlaceOnTableau(card, pile){
+  if(!card) return false;
+  if(pile.length === 0) return card.value === "K";
+  const topCard = pile[pile.length-1];
+  return topCard.faceUp && card.color !== topCard.color && values.indexOf(card.value) === values.indexOf(topCard.value) - 1;
+}
+function tryAutoMoveToFoundation(card, from, pileIndex){
+  if(!card) return;
+  const suit = card.suit;
+  if(canPlaceOnFoundation(card, suit)){
+    if(from === "waste"){
+      waste.pop();
+    } else if(from === "tableau"){
+      tableauPiles[pileIndex].pop();
+      if(tableauPiles[pileIndex].length > 0) tableauPiles[pileIndex][tableauPiles[pileIndex].length-1].faceUp = true;
+    }
+    foundations[suit].push(card);
+    render();
+    checkWin();
+  }
+}
+function checkWin(){
+  const total = suits.reduce((acc,s) => acc + foundations[s].length, 0);
+  if(total === 52){
+    setTimeout(() => alert("おめでとうございます！すべてのカードをファウンデーションに並べました！"), 100);
+  }
+}
+
+document.getElementById("one-card").onclick = () => {
+  drawCount = 1;
+  startGame();
+};
+document.getElementById("three-card").onclick = () => {
+  drawCount = 3;
+  startGame();
+};
+
+function startGame(){
+  document.getElementById("start-screen").style.display = "none";
+  createDeck();
+  shuffle(deck);
+  deal();
+}
+
+</script>
+</body>
+</html>

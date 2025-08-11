@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>テトリス</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <h1>テトリス</h1>
+    <div class="game-container">
+        <canvas id="tetrisCanvas" width="240" height="400"></canvas>
+        <div class="controls">
+            <p>矢印キーで操作してください</p>
+            <p>上: 回転 | 左: 左移動 | 右: 右移動 | 下: ソフトドロップ</p>
+            <p>スペースキー: ハードドロップ</p>
+        </div>
+    </div>
+    
+    <div class="info">
+        <p>スコア: <span id="score">0</span></p>
+        <p>レベル: <span id="level">1</span></p>
+        <p>次のブロック:</p>
+        <canvas id="nextTetrominoCanvas" width="80" height="80"></canvas>
+        <button id="startButton">ゲーム開始</button>
+    </div>
+    
+    <audio id="landSound" src="sounds/land.wav" preload="auto"></audio>
+    <audio id="rotateSound" src="sounds/rotate.wav" preload="auto"></audio>
+    <audio id="clearSound" src="sounds/clear.wav" preload="auto"></audio>
+    <audio id="gameOverSound" src="sounds/gameover.wav" preload="auto"></audio>
+    <audio id="moveSound" src="sounds/move.wav" preload="auto"></audio>
+
+    <script src="script.js"></script>
+</body>
+</html>

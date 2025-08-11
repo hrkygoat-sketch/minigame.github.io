@@ -1,0 +1,82 @@
+/* bodyのスタイルを修正 */
+body {
+    display: flex;
+    /* 画面全体を中央に配置 */
+    justify-content: center;
+    align-items: flex-start; /* 上揃え */
+    gap: 50px; /* 項目間の間隔 */
+
+    font-family: Arial, sans-serif;
+    background-color: #222;
+    color: #eee;
+    padding-top: 100px; /* 上部の余白 */
+    margin: 0; /* デフォルトのマージンをリセット */
+}
+
+/* 画面タイトルはゲームエリアの上に配置 */
+h1 {
+    position: absolute;
+    top: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    color: #0f0;
+}
+
+/* ゲームのコンテナ */
+.game-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+canvas {
+    background-color: #000;
+    border: 2px solid #0f0;
+    display: block;
+    margin-top: 20px;
+}
+
+#nextTetrominoCanvas {
+    background-color: #333;
+    border: 1px solid #0f0;
+    margin-top: 5px;
+}
+
+/* 情報エリア（右側）のスタイル */
+.info {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    margin-top: 20px;
+    text-align: center;
+}
+
+.info p {
+    margin: 5px 0;
+    font-size: 1.2em;
+}
+
+#startButton {
+    background-color: #0f0;
+    color: #222;
+    border: none;
+    padding: 10px 20px;
+    font-size: 1.2em;
+    cursor: pointer;
+    margin-top: 15px;
+    border-radius: 5px;
+}
+
+#startButton:hover {
+    background-color: #0c0;
+}
+
+.controls {
+    margin-top: 20px;
+    text-align: center;
+    line-height: 1.5;
+}
+
+.controls p {
+    margin: 5px 0;
+}
